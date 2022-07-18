@@ -1,0 +1,16 @@
+{
+  "Parameters": {
+    "PgHost": "bra4fue7tp12sh.cturt1fikfla.us-east-1.rds.amazonaws.com",
+    "SubnetA": "subnet-0eafa7f3d744498da",
+    "SubnetB": "subnet-0e227b8846d2aafa6",
+    "SubnetC": "subnet-0313f97b7e40abd8a",
+    "SecurityGroup": "sg-0907c6de62cfd70ec",
+    "CertificateArn": "arn:aws:acm:us-east-1:045028348791:certificate/3207fdd5-5483-46a1-848e-316447dd44d2",
+    "HostedZoneId": "Z1AXAHZLKLTXED",
+    "Domain": "rumblefish.dev",
+    "Environment": "dev",
+    "StaticCloudFrontHostedZoneId": "Z2FDTNDATAQYW2",
+    "CloudFormationRole": "arn:aws:iam::045028348791:role/mpapiez-nestjs-course-NestApi-18JK8C5Y-NestApiRole-1FW8A5C16GB4W",
+    "ArtifactsBucketName": "mpapiez-admin.rumblefish.dev"
+  }
+}
