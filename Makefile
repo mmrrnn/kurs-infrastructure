@@ -11,8 +11,27 @@ CAPABILITIES=CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
 
 ARTIFACT_NAME=main.zip
 
+.PHONY: deploy
+
+invalidateCloudFront.zip: InvalidateCloudFront/index.js
+	( cd InvalidateCloudFront && zip ../invalidateCloudFront.zip index.js )
+
 copy-s3-zip-files:
 	aws s3 cp s3://$(ARTIFACTS_BUCKET_NAME)/nest-api/nest-api.zip .
+
+build: invalidateCloudFront.zip copy-s3-zip-files
+	sam build
+
+upload: build
+	sam package --output-template-file $(TEMPLATE_FILE) --s3-bucket $(ARTIFACTS_BUCKET_NAME) --s3-prefix $(ARTIFACTS_S3_PREFIX)/$(VERSION) --region $(REGION)
+	zip $(ARTIFACT_NAME) $(TEMPLATE_FILE) $(PARAMETERS_FILE) Makefile
+	aws s3 cp $(ARTIFACT_NAME) s3://$(ARTIFACTS_BUCKET_NAME)/$(ARTIFACTS_S3_PREFIX)/$(VERSION)/ --region $(REGION)
+
+deploy: upload
+	sam deploy --template-file $(TEMPLATE_FILE) --stack-name $(STACK_NAME) --capabilities $(CAPABILITIES)  --region $(REGION) --parameter-overrides $(PARAMETERS)
+
+deploy-dev-ci:
+	sam deploy --template-file $(TEMPLATE_FILE) --stack-name $(STACK_NAME) --capabilities $(CAPABILITIES)  --region $(REGION) --parameter-overrides $(PARAMETERS)
 
 deploy-manually: copy-s3-zip-files
 	sam build
