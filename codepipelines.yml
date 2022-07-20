@@ -130,7 +130,7 @@ Resources:
     Type: AWS::CodePipeline::Pipeline
     Properties:
       RoleArn: !GetAtt CodePipelineRole.Arn
-      Name: update-infrastructure
+      Name: update-mpapiez-infrastructure
       Stages:
         - Name: Source
           Actions:
