@@ -56,6 +56,7 @@ Resources:
         CertificateArn: !Ref CertificateArn
         HostedZoneId: !Ref HostedZoneId
         StaticCloudFrontHostedZoneId: !Ref StaticCloudFrontHostedZoneId
+        ArtifactsBucketName: !Ref ArtifactsBucketName
 
   CodePipelines:
     Type: AWS::Serverless::Application

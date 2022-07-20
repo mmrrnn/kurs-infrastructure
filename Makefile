@@ -9,6 +9,7 @@ STACK_NAME=mpapiez-nestjs-course
 TEMPLATE_FILE=main.yml
 CAPABILITIES=CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
 
+VERSION=current
 ARTIFACT_NAME=main.zip
 
 .PHONY: deploy
@@ -25,12 +26,12 @@ build: invalidateCloudFront.zip copy-s3-zip-files
 upload: build
 	sam package --output-template-file $(TEMPLATE_FILE) --s3-bucket $(ARTIFACTS_BUCKET_NAME) --s3-prefix $(ARTIFACTS_S3_PREFIX)/$(VERSION) --region $(REGION)
 	zip $(ARTIFACT_NAME) $(TEMPLATE_FILE) $(PARAMETERS_FILE) Makefile
-	aws s3 cp $(ARTIFACT_NAME) s3://$(ARTIFACTS_BUCKET_NAME)/$(ARTIFACTS_S3_PREFIX)/$(VERSION)/ --region $(REGION)
+	aws s3 cp $(ARTIFACT_NAME) s3://$(ARTIFACTS_BUCKET_NAME)/$(ARTIFACTS_S3_PREFIX)/$(VERSION) --region $(REGION)
 
 deploy: upload
 	sam deploy --template-file $(TEMPLATE_FILE) --stack-name $(STACK_NAME) --capabilities $(CAPABILITIES)  --region $(REGION) --parameter-overrides $(PARAMETERS)
 
-deploy-dev-ci:
+deploy-ci:
 	sam deploy --template-file $(TEMPLATE_FILE) --stack-name $(STACK_NAME) --capabilities $(CAPABILITIES)  --region $(REGION) --parameter-overrides $(PARAMETERS)
 
 deploy-manually: copy-s3-zip-files

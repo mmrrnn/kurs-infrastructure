@@ -14,6 +14,8 @@ Parameters:
     Type: String
     Default: ""
     Description: Limit serving files only to specified prefix
+  ArtifactsBucketName:
+    Type: String
 
 Resources:
   FrontendBucket:
@@ -123,8 +125,40 @@ Resources:
       Name: !Ref DomainName
       Type: A
 
+  CiDeployerUser:
+    Type: AWS::IAM::User
+    Properties:
+      Path: /
+      Policies:
+      - PolicyName: allow-ci-to-update-website
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - s3:*
+            Resource:
+            - Fn::Sub: arn:aws:s3:::${ArtifactsBucketName}
+            - Fn::Sub: arn:aws:s3:::${ArtifactsBucketName}/**
+    Metadata:
+      SamResourceId: CiDeployerUser
+  CiDeployerCredentials:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName:
+        Ref: CiDeployerUser
+    Metadata:
+      SamResourceId: CiDeployerCredentials
+
 Outputs:
   CloudFrontDistributionId:
     Value: !Ref FrontendCloudFront
   FrontendBucketName:
     Value: !Ref DomainName
+  DeployerAccessKeyId:
+    Value:
+      Ref: CiDeployerCredentials
+  DeployerSecretAccessKey:
+    Value:
+      Fn::GetAtt:
+      - CiDeployerCredentials
+      - SecretAccessKey
