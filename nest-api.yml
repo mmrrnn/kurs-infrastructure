@@ -116,11 +116,18 @@ Resources:
           POSTGRES_DATABASE: "mpapiez"
           POSTGRES_PORT: 5432
       Policies:
-        Statement:
-          - Effect: "Allow"
-            Action:
-              - codedeploy:*
-            Resource: !Sub "arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentgroup:${ServerlessDeploymentApplication}/*"
+        - Version: "2012-10-17"
+          Statement: 
+          - Effect: Allow
+            Action: 
+              - codedeploy:PutLifecycleEventHookExecutionStatus
+            Resource: !Sub 'arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentgroup:${ServerlessDeploymentApplication}/*'
+        - Version: "2012-10-17"
+          Statement: 
+          - Effect: Allow
+            Action: 
+              - lambda:InvokeFunction
+            Resource: !Ref NestApi.Version
       VpcConfig:
         SecurityGroupIds:
           - !Ref SecurityGroup
