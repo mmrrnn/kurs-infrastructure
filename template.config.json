@@ -10,7 +10,7 @@
     "Domain": "rumblefish.dev",
     "Environment": "dev",
     "StaticCloudFrontHostedZoneId": "Z2FDTNDATAQYW2",
-    "CloudFormationRole": "arn:aws:iam::045028348791:role/mpapiez-nestjs-course-CodePipelin-CodePipelineRole-167YHBKV7C9I5",
+    "CloudFormationRole": "arn:aws:iam::045028348791:role/mpapiez-CloudFormationRole",
     "ArtifactsBucketName": "artifacts-dev-marcin-kurs"
   }
 }
