@@ -124,6 +124,9 @@ Resources:
                 - "}}"
           POSTGRES_DATABASE: "mpapiez"
           POSTGRES_PORT: 5432
+          STORAGE_NAME: !Ref StorageName
+          STORAGE_ACCESS_KEY: !Ref StorageAccessKey
+          STORAGE_SECRET_KEY: !Ref StorageSecretKey
       Policies:
         - Version: "2012-10-17"
           Statement: 

@@ -1,3 +1,4 @@
 .aws-sam
 nest-api.zip
 *.zip
+main.yml

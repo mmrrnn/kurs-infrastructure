@@ -46,12 +46,9 @@ Resources:
         SubnetA: !Ref SubnetA
         SubnetB: !Ref SubnetB
         SubnetC: !Ref SubnetC
-        StorageName:
-          Fn::GetAtt: ImagesStorage.Outputs.FrontendBucketName
-        StorageAccessKey:
-          Fn::GetAtt: ImagesStorage.Outputs.DeployerAccessKeyId
-        StorageSecretKey:
-          Fn::GetAtt: ImagesStorage.Outputs.DeployerSecretAccessKey
+        StorageName: !GetAtt ImagesStorage.Outputs.FrontendBucketName
+        StorageAccessKey: !GetAtt ImagesStorage.Outputs.DeployerAccessKeyId
+        StorageSecretKey: !GetAtt ImagesStorage.Outputs.DeployerSecretAccessKey
 
   Frontend:
     Type: AWS::Serverless::Application
