@@ -8,7 +8,6 @@ on:
       - master
 
 env:
-  ENV: staging
   NODE_VERSION: 12.19.0
   AWS_EC2_METADATA_DISABLED: true
   REGION: us-east-1

@@ -14,7 +14,7 @@ Parameters:
     Type: String
     Default: ""
     Description: Limit serving files only to specified prefix
-  ArtifactsBucketName:
+  BucketName:
     Type: String
 
 Resources:
@@ -23,7 +23,7 @@ Resources:
     Properties:
       AccessControl: Private
       BucketName: !Ref DomainName
-  
+
   FrontendOriginAccessIdentity:
     Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
     Properties:
@@ -137,8 +137,8 @@ Resources:
             Action:
             - s3:*
             Resource:
-            - Fn::Sub: arn:aws:s3:::${ArtifactsBucketName}
-            - Fn::Sub: arn:aws:s3:::${ArtifactsBucketName}/**
+            - Fn::Sub: arn:aws:s3:::${BucketName}
+            - Fn::Sub: arn:aws:s3:::${BucketName}/**
     Metadata:
       SamResourceId: CiDeployerUser
   CiDeployerCredentials:

@@ -46,6 +46,15 @@ Resources:
         SubnetA: !Ref SubnetA
         SubnetB: !Ref SubnetB
         SubnetC: !Ref SubnetC
+        StorageName:
+          Fn::GetAtt:
+          - ImagesStorage.Outputs.FrontendBucketName
+        StorageAccessKey:
+          Fn::GetAtt:
+          - ImagesStorage.Outputs.DeployerAccessKeyId
+        StorageSecretKey:
+          Fn::GetAtt:
+          - ImagesStorage.Outputs.DeployerSecretAccessKey
 
   Frontend:
     Type: AWS::Serverless::Application
@@ -56,7 +65,18 @@ Resources:
         CertificateArn: !Ref CertificateArn
         HostedZoneId: !Ref HostedZoneId
         StaticCloudFrontHostedZoneId: !Ref StaticCloudFrontHostedZoneId
-        ArtifactsBucketName: !Ref ArtifactsBucketName
+        BucketName: !Ref ArtifactsBucketName
+  
+  ImagesStorage:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./frontend.yml
+      Parameters:
+        DomainName: !Sub images-mpapiez.${Domain}
+        CertificateArn: !Ref CertificateArn
+        HostedZoneId: !Ref HostedZoneId
+        StaticCloudFrontHostedZoneId: !Ref StaticCloudFrontHostedZoneId
+        BucketName: !Sub images-mpapiez.${Domain}
 
   CodePipelines:
     Type: AWS::Serverless::Application
