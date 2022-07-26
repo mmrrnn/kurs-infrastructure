@@ -139,6 +139,8 @@ Resources:
             Resource:
             - Fn::Sub: arn:aws:s3:::${BucketName}
             - Fn::Sub: arn:aws:s3:::${BucketName}/**
+            - Fn::Sub: arn:aws:s3:::${DomainName}
+            - Fn::Sub: arn:aws:s3:::${DomainName}/**
     Metadata:
       SamResourceId: CiDeployerUser
   CiDeployerCredentials:
