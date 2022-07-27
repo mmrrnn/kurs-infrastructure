@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Marcin's NestJS API
+
+Parameters:
+  BasicResourcesStackName:
+    Type: String
+    Default: basic-resources-nestjs-course
+  PgHost:
+    Type: String
+  SubnetA:
+    Type: String
+  SubnetB:
+    Type: String
+  SubnetC:
+    Type: String
+  SecurityGroup:
+    Type: String
+  CertificateArn:
+    Type: String
+  Domain:
+    Type: String
+  HostedZoneId:
+    Type: String
+  Environment:
+    Type: String
+  StaticCloudFrontHostedZoneId:
+    Type: String
+  ArtifactsBucketName:
+    Type: String
+  CloudFormationRole:
+    Type: String
+  
+Resources:
+  NestApi:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./nest-api.yml
+      Parameters:
+        Environment: !Ref Environment
+        HostedZoneId: !Ref HostedZoneId
+        Domain: !Ref Domain
+        CertificateArn: !Ref CertificateArn
+        SecurityGroup: !Ref SecurityGroup
+        PgHost: !Ref PgHost
+        SubnetA: !Ref SubnetA
+        SubnetB: !Ref SubnetB
+        SubnetC: !Ref SubnetC
+        StorageName: !GetAtt ImagesStorage.Outputs.FrontendBucketName
+        StorageAccessKey: !GetAtt ImagesStorage.Outputs.DeployerAccessKeyId
+        StorageSecretKey: !GetAtt ImagesStorage.Outputs.DeployerSecretAccessKey
+
+  Frontend:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./frontend.yml
+      Parameters:
+        DomainName: !Sub mpapiez-admin.${Domain}
+        CertificateArn: !Ref CertificateArn
+        HostedZoneId: !Ref HostedZoneId
+        StaticCloudFrontHostedZoneId: !Ref StaticCloudFrontHostedZoneId
+        BucketName: !Ref ArtifactsBucketName
+  
+  ImagesStorage:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./frontend.yml
+      Parameters:
+        DomainName: !Sub images-mpapiez.${Domain}
+        CertificateArn: !Ref CertificateArn
+        HostedZoneId: !Ref HostedZoneId
+        StaticCloudFrontHostedZoneId: !Ref StaticCloudFrontHostedZoneId
+        BucketName: !Sub images-mpapiez.${Domain}
+
+  CodePipelines:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./codepipelines.yml
+      Parameters:
+        Environment: !Ref Environment
+        CloudFormationRole: !Ref CloudFormationRole
+        ArtifactsBucketName: !Ref ArtifactsBucketName
+        FrontendBucketName: !GetAtt Frontend.Outputs.FrontendBucketName
+        FrontendDistributionId: !GetAtt Frontend.Outputs.CloudFrontDistributionId
+        ImagesBucketName: !Sub images-mpapiez.${Domain}

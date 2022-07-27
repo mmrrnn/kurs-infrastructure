@@ -1,0 +1,212 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Timeout: 60
+    MemorySize: 512
+
+Parameters:
+  BasicResourcesStackName:
+    Type: String
+    Default: basic-resources-nestjs-course
+  PgHost:
+    Type: String
+  SubnetA:
+    Type: String
+  SubnetB:
+    Type: String
+  SubnetC:
+    Type: String
+  SecurityGroup:
+    Type: String
+  CertificateArn:
+    Type: String
+  Domain:
+    Type: String
+  HostedZoneId:
+    Type: String
+  Environment:
+    Type: String
+  StorageName:
+    Type: String
+  StorageAccessKey:
+    Type: String
+  StorageSecretKey:
+    Type: String
+  
+Resources:
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Environment
+      MethodSettings:
+      - ResourcePath: /*
+        HttpMethod: '*'
+      Domain:
+        CertificateArn: !Ref CertificateArn
+        DomainName: !Sub mpapiez-nest-api.${Domain}
+        Route53:
+          HostedZoneId: !Ref HostedZoneId
+
+  NestApi:
+    Tracing: Active
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./nest-api.zip
+      Handler: dist/src/lambdaEntrypoint.app
+      Runtime: nodejs14.x
+      AutoPublishAlias: NestApi
+      Environment:
+        Variables:
+          POSTGRES_HOST: !Ref PgHost
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD:
+            Fn::Join:
+              - ""
+              - - "{{resolve:ssm:"
+                - !ImportValue
+                  'Fn::Sub': '${BasicResourcesStackName}-RDSPostgresRootPassword'
+                - "}}"
+          POSTGRES_DATABASE: "mpapiez"
+          POSTGRES_PORT: 5432
+          STORAGE_NAME: !Ref StorageName
+          STORAGE_ACCESS_KEY: !Ref StorageAccessKey
+          STORAGE_SECRET_KEY: !Ref StorageSecretKey
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroup
+        SubnetIds:
+          - !Ref SubnetA
+          - !Ref SubnetB
+          - !Ref SubnetC
+      Events:
+        NestJs:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /{whatever+}
+            Method: ANY
+      Policies:
+        - Statement:
+            - Action:
+                - s3:*
+                - codedeploy:*
+              Effect: Allow
+              Resource:
+                - "*"
+            - Effect: "Allow"
+              Action:
+                - "lambda:InvokeFunction"
+              Resource: "*"
+      DeploymentPreference:
+        Type: AllAtOnce
+        Hooks:
+          PreTraffic: !Ref RunMigrations
+
+  RunMigrations:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: CodeDeployHook_NestApiRunMigrationsMarcinPapiez
+      CodeUri: ./nest-api.zip
+      Handler: dist/src/lambdaEntrypoint.runMigrations
+      Runtime: nodejs14.x
+      Environment:
+        Variables:
+          POSTGRES_HOST: !Ref PgHost
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD:
+            Fn::Join:
+              - ""
+              - - "{{resolve:ssm:"
+                - !ImportValue
+                  'Fn::Sub': '${BasicResourcesStackName}-RDSPostgresRootPassword'
+                - "}}"
+          POSTGRES_DATABASE: "mpapiez"
+          POSTGRES_PORT: 5432
+          STORAGE_NAME: !Ref StorageName
+          STORAGE_ACCESS_KEY: !Ref StorageAccessKey
+          STORAGE_SECRET_KEY: !Ref StorageSecretKey
+      Policies:
+        - Version: "2012-10-17"
+          Statement: 
+          - Effect: Allow
+            Action: 
+              - codedeploy:PutLifecycleEventHookExecutionStatus
+            Resource: !Sub 'arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentgroup:${ServerlessDeploymentApplication}/*'
+        - Version: "2012-10-17"
+          Statement: 
+          - Effect: Allow
+            Action: 
+              - lambda:InvokeFunction
+            Resource: !Ref NestApi.Version
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroup
+        SubnetIds:
+          - !Ref SubnetA
+          - !Ref SubnetB
+          - !Ref SubnetC
+      DeploymentPreference:
+        Enabled: false
+
+  MarkAsUploaded:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./nest-api.zip
+      Handler: dist/src/lambdaEntrypoint.markAsUploaded
+      Runtime: nodejs14.x
+      Environment:
+        Variables:
+          POSTGRES_HOST: !Ref PgHost
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD:
+            Fn::Join:
+              - ""
+              - - "{{resolve:ssm:"
+                - !ImportValue
+                  'Fn::Sub': '${BasicResourcesStackName}-RDSPostgresRootPassword'
+                - "}}"
+          POSTGRES_DATABASE: "mpapiez"
+          POSTGRES_PORT: 5432
+          STORAGE_NAME: !Ref StorageName
+          STORAGE_ACCESS_KEY: !Ref StorageAccessKey
+          STORAGE_SECRET_KEY: !Ref StorageSecretKey
+      Policies:
+        - Version: "2012-10-17"
+          Statement: 
+          - Effect: Allow
+            Action: 
+              - lambda:InvokeFunction
+            Resource: "*"
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroup
+        SubnetIds:
+          - !Ref SubnetA
+          - !Ref SubnetB
+          - !Ref SubnetC
+      Events:
+        UploadedCover:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - aws.s3
+              detail-type:
+                - "AWS API Call via CloudTrail"
+              detail:
+                eventSource:
+                  - s3.amazonaws.com
+                eventName:
+                  - CopyObject
+                  - PutObject
+                  - CompleteMultipartUpload
+
+Outputs:
+  NestApi:
+    Description: "Marcin's Nest Lambda Function ARN"
+    Value: !GetAtt NestApi.Arn
+  NestApiIamRole:
+    Description: "Implicit IAM Role created for NestApi"
+    Value: !GetAtt NestApiRole.Arn
