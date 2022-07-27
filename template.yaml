@@ -82,3 +82,4 @@ Resources:
         ArtifactsBucketName: !Ref ArtifactsBucketName
         FrontendBucketName: !GetAtt Frontend.Outputs.FrontendBucketName
         FrontendDistributionId: !GetAtt Frontend.Outputs.CloudFrontDistributionId
+        ImagesBucketName: !Sub images-mpapiez.${Domain}
