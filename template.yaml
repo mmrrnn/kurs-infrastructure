@@ -60,6 +60,17 @@ Resources:
         HostedZoneId: !Ref HostedZoneId
         StaticCloudFrontHostedZoneId: !Ref StaticCloudFrontHostedZoneId
         BucketName: !Ref ArtifactsBucketName
+  
+  ImagesStorage:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./frontend.yml
+      Parameters:
+        DomainName: !Sub images-mpapiez.${Domain}
+        CertificateArn: !Ref CertificateArn
+        HostedZoneId: !Ref HostedZoneId
+        StaticCloudFrontHostedZoneId: !Ref StaticCloudFrontHostedZoneId
+        BucketName: !Sub images-mpapiez.${Domain}
 
   CodePipelines:
     Type: AWS::Serverless::Application
@@ -71,3 +82,4 @@ Resources:
         ArtifactsBucketName: !Ref ArtifactsBucketName
         FrontendBucketName: !GetAtt Frontend.Outputs.FrontendBucketName
         FrontendDistributionId: !GetAtt Frontend.Outputs.CloudFrontDistributionId
+        ImagesBucketName: !Sub images-mpapiez.${Domain}
