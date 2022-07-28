@@ -1,11 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
-Globals:
-  Function:
-    Timeout: 60
-    MemorySize: 512
-
 Parameters:
   BasicResourcesStackName:
     Type: String
@@ -34,6 +29,35 @@ Parameters:
     Type: String
   StorageSecretKey:
     Type: String
+
+Globals:
+  Function:
+    Timeout: 60
+    MemorySize: 512
+    Runtime: nodejs14.x
+    Environment:
+      Variables:
+        POSTGRES_HOST: !Ref PgHost
+        POSTGRES_USER: root
+        POSTGRES_PASSWORD:
+          Fn::Join:
+            - ""
+            - - "{{resolve:ssm:"
+              - !ImportValue
+                'Fn::Sub': '${BasicResourcesStackName}-RDSPostgresRootPassword'
+              - "}}"
+        POSTGRES_DATABASE: "mpapiez"
+        POSTGRES_PORT: 5432
+        STORAGE_NAME: !Ref StorageName
+        STORAGE_ACCESS_KEY: !Ref StorageAccessKey
+        STORAGE_SECRET_KEY: !Ref StorageSecretKey
+    VpcConfig:
+      SecurityGroupIds:
+        - !Ref SecurityGroup
+      SubnetIds:
+        - !Ref SubnetA
+        - !Ref SubnetB
+        - !Ref SubnetC
   
 Resources:
   Api:
@@ -55,31 +79,7 @@ Resources:
     Properties:
       CodeUri: ./nest-api.zip
       Handler: dist/src/lambdaEntrypoint.app
-      Runtime: nodejs14.x
       AutoPublishAlias: NestApi
-      Environment:
-        Variables:
-          POSTGRES_HOST: !Ref PgHost
-          POSTGRES_USER: root
-          POSTGRES_PASSWORD:
-            Fn::Join:
-              - ""
-              - - "{{resolve:ssm:"
-                - !ImportValue
-                  'Fn::Sub': '${BasicResourcesStackName}-RDSPostgresRootPassword'
-                - "}}"
-          POSTGRES_DATABASE: "mpapiez"
-          POSTGRES_PORT: 5432
-          STORAGE_NAME: !Ref StorageName
-          STORAGE_ACCESS_KEY: !Ref StorageAccessKey
-          STORAGE_SECRET_KEY: !Ref StorageSecretKey
-      VpcConfig:
-        SecurityGroupIds:
-          - !Ref SecurityGroup
-        SubnetIds:
-          - !Ref SubnetA
-          - !Ref SubnetB
-          - !Ref SubnetC
       Events:
         NestJs:
           Type: Api
@@ -110,23 +110,6 @@ Resources:
       FunctionName: CodeDeployHook_NestApiRunMigrationsMarcinPapiez
       CodeUri: ./nest-api.zip
       Handler: dist/src/lambdaEntrypoint.runMigrations
-      Runtime: nodejs14.x
-      Environment:
-        Variables:
-          POSTGRES_HOST: !Ref PgHost
-          POSTGRES_USER: root
-          POSTGRES_PASSWORD:
-            Fn::Join:
-              - ""
-              - - "{{resolve:ssm:"
-                - !ImportValue
-                  'Fn::Sub': '${BasicResourcesStackName}-RDSPostgresRootPassword'
-                - "}}"
-          POSTGRES_DATABASE: "mpapiez"
-          POSTGRES_PORT: 5432
-          STORAGE_NAME: !Ref StorageName
-          STORAGE_ACCESS_KEY: !Ref StorageAccessKey
-          STORAGE_SECRET_KEY: !Ref StorageSecretKey
       Policies:
         - Version: "2012-10-17"
           Statement: 
@@ -140,13 +123,6 @@ Resources:
             Action: 
               - lambda:InvokeFunction
             Resource: !Ref NestApi.Version
-      VpcConfig:
-        SecurityGroupIds:
-          - !Ref SecurityGroup
-        SubnetIds:
-          - !Ref SubnetA
-          - !Ref SubnetB
-          - !Ref SubnetC
       DeploymentPreference:
         Enabled: false
 
@@ -155,23 +131,6 @@ Resources:
     Properties:
       CodeUri: ./nest-api.zip
       Handler: dist/src/lambdaEntrypoint.markAsUploaded
-      Runtime: nodejs14.x
-      Environment:
-        Variables:
-          POSTGRES_HOST: !Ref PgHost
-          POSTGRES_USER: root
-          POSTGRES_PASSWORD:
-            Fn::Join:
-              - ""
-              - - "{{resolve:ssm:"
-                - !ImportValue
-                  'Fn::Sub': '${BasicResourcesStackName}-RDSPostgresRootPassword'
-                - "}}"
-          POSTGRES_DATABASE: "mpapiez"
-          POSTGRES_PORT: 5432
-          STORAGE_NAME: !Ref StorageName
-          STORAGE_ACCESS_KEY: !Ref StorageAccessKey
-          STORAGE_SECRET_KEY: !Ref StorageSecretKey
       Policies:
         - Version: "2012-10-17"
           Statement: 
@@ -179,13 +138,6 @@ Resources:
             Action: 
               - lambda:InvokeFunction
             Resource: "*"
-      VpcConfig:
-        SecurityGroupIds:
-          - !Ref SecurityGroup
-        SubnetIds:
-          - !Ref SubnetA
-          - !Ref SubnetB
-          - !Ref SubnetC
       Events:
         UploadedCover:
           Type: EventBridgeRule
