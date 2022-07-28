@@ -150,59 +150,6 @@ Resources:
       DeploymentPreference:
         Enabled: false
 
-  MarkAsUploaded:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./nest-api.zip
-      Handler: dist/src/lambdaEntrypoint.markAsUploaded
-      Runtime: nodejs14.x
-      Environment:
-        Variables:
-          POSTGRES_HOST: !Ref PgHost
-          POSTGRES_USER: root
-          POSTGRES_PASSWORD:
-            Fn::Join:
-              - ""
-              - - "{{resolve:ssm:"
-                - !ImportValue
-                  'Fn::Sub': '${BasicResourcesStackName}-RDSPostgresRootPassword'
-                - "}}"
-          POSTGRES_DATABASE: "mpapiez"
-          POSTGRES_PORT: 5432
-          STORAGE_NAME: !Ref StorageName
-          STORAGE_ACCESS_KEY: !Ref StorageAccessKey
-          STORAGE_SECRET_KEY: !Ref StorageSecretKey
-      Policies:
-        - Version: "2012-10-17"
-          Statement: 
-          - Effect: Allow
-            Action: 
-              - lambda:InvokeFunction
-            Resource: "*"
-      VpcConfig:
-        SecurityGroupIds:
-          - !Ref SecurityGroup
-        SubnetIds:
-          - !Ref SubnetA
-          - !Ref SubnetB
-          - !Ref SubnetC
-      Events:
-        UploadedCover:
-          Type: EventBridgeRule
-          Properties:
-            Pattern:
-              source:
-                - aws.s3
-              detail-type:
-                - "AWS API Call via CloudTrail"
-              detail:
-                eventSource:
-                  - s3.amazonaws.com
-                eventName:
-                  - CopyObject
-                  - PutObject
-                  - CompleteMultipartUpload
-
 Outputs:
   NestApi:
     Description: "Marcin's Nest Lambda Function ARN"
