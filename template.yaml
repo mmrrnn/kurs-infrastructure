@@ -96,7 +96,5 @@ Resources:
       Location: ./state-machine.yml
       Parameters:
         DefineImageIdLambda: !GetAtt NestApi.Outputs.DefineImageIdLambda
-        MarkImageStatusLambda: !GetAtt NestApi.Outputs.MarkImageStatusLambda
-        SendImageVerificationEmailLambda: !GetAtt NestApi.Outputs.SendImageVerificationEmailLambda
+        ImageVerificationHandlerLambda: !GetAtt NestApi.Outputs.ImageVerificationHandlerLambda
         ImagesBucketName: !Sub images-mpapiez.${Domain}
-        VerificationQueue: !GetAtt NestApi.Outputs.VerificationQueueArn

@@ -67,11 +67,6 @@ Globals:
         - !Ref SubnetC
   
 Resources:
-  VerificationQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      VisibilityTimeout: 60
-
   Api:
     Type: AWS::Serverless::Api
     Properties:
@@ -143,16 +138,18 @@ Resources:
       DeploymentPreference:
         Enabled: false
 
-  MarkImageStatus:
+  ImageVerificationHandler:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./nest-api.zip
-      Handler: dist/src/lambdaEntrypoint.markImageStatus
+      Handler: dist/src/lambdaEntrypoint.imageVerificationHandler
       Policies:
         - Version: "2012-10-17"
           Statement: 
           - Effect: Allow
             Action: 
+              - ses:SendEmail
+              - ses:SendRawEmail
               - lambda:InvokeFunction
             Resource: "*"
       Events:
@@ -185,28 +182,6 @@ Resources:
               - lambda:InvokeFunction
             Resource: "*"
 
-  SendImageVerificationEmail:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./nest-api.zip
-      Handler: dist/src/lambdaEntrypoint.sendImageVerificationEmail
-      Runtime: "nodejs14.x"
-      Timeout: 60
-      Policies:
-        - Statement:
-            - Action:
-                - ses:SendEmail
-                - ses:SendRawEmail
-              Effect: Allow
-              Resource:
-                - "*"
-      Events:
-        VerificationInProgress:
-          Type: SQS
-          Properties:
-            Queue: !GetAtt VerificationQueue.Arn
-            BatchSize: 10
-
 Outputs:
   NestApi:
     Description: "Marcin's Nest Lambda Function ARN"
@@ -216,9 +191,5 @@ Outputs:
     Value: !GetAtt NestApiRole.Arn
   DefineImageIdLambda:
     Value: !GetAtt DefineImageId.Arn
-  MarkImageStatusLambda:
-    Value: !GetAtt MarkImageStatus.Arn
-  SendImageVerificationEmailLambda:
-    Value: !GetAtt SendImageVerificationEmail.Arn
-  VerificationQueueArn:
-    Value: !Ref VerificationQueue
+  ImageVerificationHandlerLambda:
+    Value: !GetAtt ImageVerificationHandler.Arn

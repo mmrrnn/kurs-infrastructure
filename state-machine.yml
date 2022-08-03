@@ -1,13 +1,9 @@
 Transform: AWS::Serverless-2016-10-31
 
 Parameters:
-  MarkImageStatusLambda:
-    Type: String
-  SendImageVerificationEmailLambda:
+  ImageVerificationHandlerLambda:
     Type: String
   ImagesBucketName:
-    Type: String
-  VerificationQueue:
     Type: String
   DefineImageIdLambda:
     Type: String
@@ -26,20 +22,21 @@ Resources:
             Next: MarkAsUnderReview
           MarkAsUnderReview:
             Type: Task
-            Resource: !Ref MarkImageStatusLambda
+            Resource: !Ref ImageVerificationHandlerLambda
             Parameters:
               "stateName.$": "$$.State.Name"
               "imageId.$": "$.imageId"
             ResultPath: "$.imageId"
-            Next: SendEmailQueue
-          SendEmailQueue:
+            Next: SendVerificationEmail
+          SendVerificationEmail:
             Type: Task
-            Resource: arn:aws:states:::sqs:sendMessage.waitForTaskToken
+            Resource: arn:aws:states:::lambda:invoke.waitForTaskToken
             Parameters:
-              QueueUrl: !Ref VerificationQueue
-              MessageBody:
-                id.$: "$.imageId"
-                taskToken.$: "$$.Task.Token"
+              FunctionName: !Ref ImageVerificationHandlerLambda
+              Payload:
+                "imageId.$": "$.imageId"
+                "stateName.$": "$$.State.Name"
+                "taskToken.$": "$$.Task.Token"
             ResultPath: "$.queueData"
             Next: MarkImageVerification
           MarkImageVerification:
@@ -56,7 +53,7 @@ Resources:
             Default: Done
           MarkAsApproved:
             Type: Task
-            Resource: !Ref MarkImageStatusLambda
+            Resource: !Ref ImageVerificationHandlerLambda
             Parameters:
               "stateName.$": "$$.State.Name"
               "imageId.$": "$.imageId"
@@ -64,7 +61,7 @@ Resources:
             Next: Done
           MarkAsRejected:
             Type: Task
-            Resource: !Ref MarkImageStatusLambda
+            Resource: !Ref ImageVerificationHandlerLambda
             Parameters:
               "stateName.$": "$$.State.Name"
               "imageId.$": "$.imageId"
@@ -96,10 +93,6 @@ Resources:
               - Effect: Allow
                 Action:
                   - "lambda:InvokeFunction"
-                Resource: "*"
-              - Effect: Allow
-                Action:
-                  - "sqs:SendMessage"
                 Resource: "*"
 
   AmazonCloudWatchEventRole:
