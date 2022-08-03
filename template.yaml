@@ -30,6 +30,10 @@ Parameters:
     Type: String
   CloudFormationRole:
     Type: String
+  ImageReviewer:
+    Type: String
+  EmailSender:
+    Type: String
   
 Resources:
   NestApi:
@@ -49,6 +53,8 @@ Resources:
         StorageName: !GetAtt ImagesStorage.Outputs.FrontendBucketName
         StorageAccessKey: !GetAtt ImagesStorage.Outputs.DeployerAccessKeyId
         StorageSecretKey: !GetAtt ImagesStorage.Outputs.DeployerSecretAccessKey
+        ImageReviewer: !Ref ImageReviewer
+        EmailSender: !Ref EmailSender
 
   Frontend:
     Type: AWS::Serverless::Application
@@ -83,3 +89,15 @@ Resources:
         FrontendBucketName: !GetAtt Frontend.Outputs.FrontendBucketName
         FrontendDistributionId: !GetAtt Frontend.Outputs.CloudFrontDistributionId
         ImagesBucketName: !Sub images-mpapiez.${Domain}
+
+  StateMachine:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./state-machine.yml
+      Parameters:
+        MarkImageAsUnderReviewLambda: !GetAtt NestApi.Outputs.MarkImageAsUnderReviewLambda
+        SendImageVerificationEmailLambda: !GetAtt NestApi.Outputs.SendImageVerificationEmailLambda
+        MarkImageAsApprovedLambda: !GetAtt NestApi.Outputs.MarkImageAsApprovedLambda
+        MarkImageAsRejectedLambda: !GetAtt NestApi.Outputs.MarkImageAsRejectedLambda
+        ImagesBucketName: !Sub images-mpapiez.${Domain}
+        VerificationQueue: !GetAtt NestApi.Outputs.VerificationQueueArn

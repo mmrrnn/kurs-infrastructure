@@ -11,6 +11,8 @@
     "Environment": "dev",
     "StaticCloudFrontHostedZoneId": "Z2FDTNDATAQYW2",
     "CloudFormationRole": "arn:aws:iam::045028348791:role/mpapiez-CloudFormationRole",
-    "ArtifactsBucketName": "artifacts-dev-marcin-kurs"
+    "ArtifactsBucketName": "artifacts-dev-marcin-kurs",
+    "ImageReviewer": "mmpapiez@gmail.com",
+    "EmailSender": "marcin.papiez@rumblefishdev.com"
   }
 }

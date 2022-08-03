@@ -1,0 +1,138 @@
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  MarkImageAsUnderReviewLambda:
+    Type: String
+  SendImageVerificationEmailLambda:
+    Type: String
+  MarkImageAsApprovedLambda:
+    Type: String
+  MarkImageAsRejectedLambda:
+    Type: String
+  ImagesBucketName:
+    Type: String
+  VerificationQueue:
+    Type: String
+
+Resources:
+  ImageStatusStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Definition:
+        StartAt: MarkAsUnderReview
+        States:
+          MarkAsUnderReview:
+            Type: Task
+            Resource: !Ref MarkImageAsUnderReviewLambda
+            ResultPath: "$.imageId"
+            Next: SendEmailQueue
+          SendEmailQueue:
+            Type: Task
+            Resource: arn:aws:states:::sqs:sendMessage.waitForTaskToken
+            Parameters:
+              QueueUrl: !Ref VerificationQueue
+              MessageBody:
+                id.$: "$.imageId"
+                taskToken.$: "$$.Task.Token"
+            ResultPath: "$.queueData"
+            Next: MarkImageVerification
+          MarkImageVerification:
+            Type: Choice
+            Choices:
+              -
+                Variable: "$.queueData.result"
+                StringEquals: "APPROVE"
+                Next: MarkAsApproved
+              -
+                Variable: "$.queueData.result"
+                StringEquals: "REJECT"
+                Next: MarkAsRejected
+            Default: Done
+          MarkAsApproved:
+            Type: Task
+            Resource: !Ref MarkImageAsApprovedLambda
+            Next: Done
+          MarkAsRejected:
+            Type: Task
+            Resource: !Ref MarkImageAsRejectedLambda
+            Next: Done
+          Done:
+            Type: Succeed
+      Tracing:
+        Enabled: true
+      Role: !GetAtt [ StatesExecutionRole, Arn ]
+
+  StatesExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - !Sub states.${AWS::Region}.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: StatesExecutionPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - "sqs:SendMessage"
+                Resource: "*"
+
+  AmazonCloudWatchEventRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: state-machine-execution
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: states:*
+                Resource:
+                  - !GetAtt ImageStatusStateMachine.Arn
+
+  AmazonCloudWatchEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventPattern:
+        source:
+          - aws.s3
+        detail-type:
+          - "AWS API Call via CloudTrail"
+        detail:
+          eventSource:
+            - s3.amazonaws.com
+          eventName:
+            - CopyObject
+            - PutObject
+            - CompleteMultipartUpload
+          requestParameters:
+            bucketName:
+              - !Ref ImagesBucketName
+      Targets:
+        - Arn: !GetAtt ImageStatusStateMachine.Arn
+          RoleArn: !GetAtt AmazonCloudWatchEventRole.Arn
+          Id: state-machine-event-rule
+
+Outputs:
+  StateMachineArn:
+    Value: !Ref ImageStatusStateMachine

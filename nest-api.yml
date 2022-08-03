@@ -29,6 +29,10 @@ Parameters:
     Type: String
   StorageSecretKey:
     Type: String
+  ImageReviewer:
+    Type: String
+  EmailSender:
+    Type: String
 
 Globals:
   Function:
@@ -51,6 +55,9 @@ Globals:
         STORAGE_NAME: !Ref StorageName
         STORAGE_ACCESS_KEY: !Ref StorageAccessKey
         STORAGE_SECRET_KEY: !Ref StorageSecretKey
+        IMAGE_REVIEWER: !Ref ImageReviewer
+        EMAIL_SENDER: !Ref EmailSender
+        PRODUCTION_URL: !Sub https://mpapiez-nest-api.${Domain}
     VpcConfig:
       SecurityGroupIds:
         - !Ref SecurityGroup
@@ -60,6 +67,11 @@ Globals:
         - !Ref SubnetC
   
 Resources:
+  VerificationQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 60
+
   Api:
     Type: AWS::Serverless::Api
     Properties:
@@ -99,6 +111,11 @@ Resources:
               Action:
                 - "lambda:InvokeFunction"
               Resource: "*"
+            - Effect: Allow
+              Action:
+                - "states:SendTaskSuccess"
+                - "states:SendTaskFailure"
+              Resource: "*"
       DeploymentPreference:
         Type: AllAtOnce
         Hooks:
@@ -126,11 +143,11 @@ Resources:
       DeploymentPreference:
         Enabled: false
 
-  MarkAsUploaded:
+  MarkImageAsUnderReview:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./nest-api.zip
-      Handler: dist/src/lambdaEntrypoint.markAsUploaded
+      Handler: dist/src/lambdaEntrypoint.markImageAsUnderReview
       Policies:
         - Version: "2012-10-17"
           Statement: 
@@ -155,6 +172,86 @@ Resources:
                   - PutObject
                   - CompleteMultipartUpload
 
+  MarkImageAsApproved:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./nest-api.zip
+      Handler: dist/src/lambdaEntrypoint.markImageAsApproved
+      Policies:
+        - Version: "2012-10-17"
+          Statement: 
+          - Effect: Allow
+            Action: 
+              - lambda:InvokeFunction
+            Resource: "*"
+      Events:
+        UploadedCover:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - aws.s3
+              detail-type:
+                - "AWS API Call via CloudTrail"
+              detail:
+                eventSource:
+                  - s3.amazonaws.com
+                eventName:
+                  - CopyObject
+                  - PutObject
+                  - CompleteMultipartUpload
+
+  MarkImageAsRejected:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./nest-api.zip
+      Handler: dist/src/lambdaEntrypoint.markImageAsRejected
+      Policies:
+        - Version: "2012-10-17"
+          Statement: 
+          - Effect: Allow
+            Action: 
+              - lambda:InvokeFunction
+            Resource: "*"
+      Events:
+        UploadedCover:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - aws.s3
+              detail-type:
+                - "AWS API Call via CloudTrail"
+              detail:
+                eventSource:
+                  - s3.amazonaws.com
+                eventName:
+                  - CopyObject
+                  - PutObject
+                  - CompleteMultipartUpload
+
+  SendImageVerificationEmail:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./nest-api.zip
+      Handler: dist/src/lambdaEntrypoint.sendImageVerificationEmail
+      Runtime: "nodejs14.x"
+      Timeout: 60
+      Policies:
+        - Statement:
+            - Action:
+                - ses:SendEmail
+                - ses:SendRawEmail
+              Effect: Allow
+              Resource:
+                - "*"
+      Events:
+        VerificationInProgress:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt VerificationQueue.Arn
+            BatchSize: 10
+
 Outputs:
   NestApi:
     Description: "Marcin's Nest Lambda Function ARN"
@@ -162,3 +259,13 @@ Outputs:
   NestApiIamRole:
     Description: "Implicit IAM Role created for NestApi"
     Value: !GetAtt NestApiRole.Arn
+  MarkImageAsUnderReviewLambda:
+    Value: !GetAtt MarkImageAsUnderReview.Arn
+  SendImageVerificationEmailLambda:
+    Value: !GetAtt SendImageVerificationEmail.Arn
+  VerificationQueueArn:
+    Value: !Ref VerificationQueue
+  MarkImageAsApprovedLambda:
+    Value: !GetAtt MarkImageAsApproved.Arn
+  MarkImageAsRejectedLambda:
+    Value: !GetAtt MarkImageAsRejected.Arn
