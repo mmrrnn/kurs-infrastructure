@@ -1,17 +1,15 @@
 Transform: AWS::Serverless-2016-10-31
 
 Parameters:
-  MarkImageAsUnderReviewLambda:
+  MarkImageStatusLambda:
     Type: String
   SendImageVerificationEmailLambda:
-    Type: String
-  MarkImageAsApprovedLambda:
-    Type: String
-  MarkImageAsRejectedLambda:
     Type: String
   ImagesBucketName:
     Type: String
   VerificationQueue:
+    Type: String
+  DefineImageIdLambda:
     Type: String
 
 Resources:
@@ -19,11 +17,19 @@ Resources:
     Type: AWS::Serverless::StateMachine
     Properties:
       Definition:
-        StartAt: MarkAsUnderReview
+        StartAt: DefineImageId
         States:
+          DefineImageId:
+            Type: Task
+            Resource: !Ref DefineImageIdLambda
+            ResultPath: "$.imageId"
+            Next: MarkAsUnderReview
           MarkAsUnderReview:
             Type: Task
-            Resource: !Ref MarkImageAsUnderReviewLambda
+            Resource: !Ref MarkImageStatusLambda
+            Parameters:
+              "stateName.$": "$$.State.Name"
+              "imageId.$": "$.imageId"
             ResultPath: "$.imageId"
             Next: SendEmailQueue
           SendEmailQueue:
@@ -50,11 +56,19 @@ Resources:
             Default: Done
           MarkAsApproved:
             Type: Task
-            Resource: !Ref MarkImageAsApprovedLambda
+            Resource: !Ref MarkImageStatusLambda
+            Parameters:
+              "stateName.$": "$$.State.Name"
+              "imageId.$": "$.imageId"
+            ResultPath: "$.imageId"
             Next: Done
           MarkAsRejected:
             Type: Task
-            Resource: !Ref MarkImageAsRejectedLambda
+            Resource: !Ref MarkImageStatusLambda
+            Parameters:
+              "stateName.$": "$$.State.Name"
+              "imageId.$": "$.imageId"
+            ResultPath: "$.imageId"
             Next: Done
           Done:
             Type: Succeed

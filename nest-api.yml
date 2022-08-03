@@ -143,11 +143,11 @@ Resources:
       DeploymentPreference:
         Enabled: false
 
-  MarkImageAsUnderReview:
+  MarkImageStatus:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./nest-api.zip
-      Handler: dist/src/lambdaEntrypoint.markImageAsUnderReview
+      Handler: dist/src/lambdaEntrypoint.markImageStatus
       Policies:
         - Version: "2012-10-17"
           Statement: 
@@ -172,11 +172,11 @@ Resources:
                   - PutObject
                   - CompleteMultipartUpload
 
-  MarkImageAsApproved:
+  DefineImageId:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./nest-api.zip
-      Handler: dist/src/lambdaEntrypoint.markImageAsApproved
+      Handler: dist/src/lambdaEntrypoint.defineImageId
       Policies:
         - Version: "2012-10-17"
           Statement: 
@@ -184,51 +184,6 @@ Resources:
             Action: 
               - lambda:InvokeFunction
             Resource: "*"
-      Events:
-        UploadedCover:
-          Type: EventBridgeRule
-          Properties:
-            Pattern:
-              source:
-                - aws.s3
-              detail-type:
-                - "AWS API Call via CloudTrail"
-              detail:
-                eventSource:
-                  - s3.amazonaws.com
-                eventName:
-                  - CopyObject
-                  - PutObject
-                  - CompleteMultipartUpload
-
-  MarkImageAsRejected:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./nest-api.zip
-      Handler: dist/src/lambdaEntrypoint.markImageAsRejected
-      Policies:
-        - Version: "2012-10-17"
-          Statement: 
-          - Effect: Allow
-            Action: 
-              - lambda:InvokeFunction
-            Resource: "*"
-      Events:
-        UploadedCover:
-          Type: EventBridgeRule
-          Properties:
-            Pattern:
-              source:
-                - aws.s3
-              detail-type:
-                - "AWS API Call via CloudTrail"
-              detail:
-                eventSource:
-                  - s3.amazonaws.com
-                eventName:
-                  - CopyObject
-                  - PutObject
-                  - CompleteMultipartUpload
 
   SendImageVerificationEmail:
     Type: AWS::Serverless::Function
@@ -259,13 +214,11 @@ Outputs:
   NestApiIamRole:
     Description: "Implicit IAM Role created for NestApi"
     Value: !GetAtt NestApiRole.Arn
-  MarkImageAsUnderReviewLambda:
-    Value: !GetAtt MarkImageAsUnderReview.Arn
+  DefineImageIdLambda:
+    Value: !GetAtt DefineImageId.Arn
+  MarkImageStatusLambda:
+    Value: !GetAtt MarkImageStatus.Arn
   SendImageVerificationEmailLambda:
     Value: !GetAtt SendImageVerificationEmail.Arn
   VerificationQueueArn:
     Value: !Ref VerificationQueue
-  MarkImageAsApprovedLambda:
-    Value: !GetAtt MarkImageAsApproved.Arn
-  MarkImageAsRejectedLambda:
-    Value: !GetAtt MarkImageAsRejected.Arn

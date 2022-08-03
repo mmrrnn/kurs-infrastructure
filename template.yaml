@@ -95,9 +95,8 @@ Resources:
     Properties:
       Location: ./state-machine.yml
       Parameters:
-        MarkImageAsUnderReviewLambda: !GetAtt NestApi.Outputs.MarkImageAsUnderReviewLambda
+        DefineImageIdLambda: !GetAtt NestApi.Outputs.DefineImageIdLambda
+        MarkImageStatusLambda: !GetAtt NestApi.Outputs.MarkImageStatusLambda
         SendImageVerificationEmailLambda: !GetAtt NestApi.Outputs.SendImageVerificationEmailLambda
-        MarkImageAsApprovedLambda: !GetAtt NestApi.Outputs.MarkImageAsApprovedLambda
-        MarkImageAsRejectedLambda: !GetAtt NestApi.Outputs.MarkImageAsRejectedLambda
         ImagesBucketName: !Sub images-mpapiez.${Domain}
         VerificationQueue: !GetAtt NestApi.Outputs.VerificationQueueArn
